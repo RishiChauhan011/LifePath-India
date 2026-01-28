@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+motor
+pymongo
+python-jose[cryptography]
+passlib[bcrypt]
+scikit-learn
+pandas
+numpy
+joblib
+python-dotenv
+requests
+httpx
+pytest
+pytest-asyncio
