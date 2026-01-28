@@ -15,12 +15,14 @@ import NotificationsPage from './pages/NotificationsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import VoiceAssistant from './components/common/VoiceAssistant';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <div className="min-h-screen bg-app-bg font-sans text-white">
+          <VoiceAssistant />
           <Navbar />
           <main>
             <Routes>
