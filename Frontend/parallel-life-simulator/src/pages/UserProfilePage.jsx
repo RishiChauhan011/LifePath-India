@@ -44,7 +44,7 @@ const UserProfilePage = () => {
                              <Input label="Location" defaultValue="San Francisco, CA" />
                          </div>
                          <div className="mt-6 flex justify-end">
-                             <Button>Update Profile</Button>
+                             <Button onClick={() => alert("Profile functionality coming soon!")}>Update Profile</Button>
                          </div>
                      </Card>
                  </div>

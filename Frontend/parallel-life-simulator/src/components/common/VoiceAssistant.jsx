@@ -4,6 +4,7 @@ import { Mic, Square, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../../context/AuthContext';
+import useVoiceInput from '../../hooks/useVoiceInput';
 
 const VoiceAssistant = () => {
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -13,122 +14,110 @@ const VoiceAssistant = () => {
     
     const location = useLocation();
     const { user } = useContext(AuthContext);
-    const { isListening, transcript, startListening, resetTranscript, hasRecognition } = useVoiceInput();
+    const { isListening, transcript, startListening, resetTranscript, hasRecognition, error } = useVoiceInput();
+    const [availableVoices, setAvailableVoices] = useState([]);
 
     // Cleanup on unmount
     useEffect(() => {
+        const loadVoices = () => {
+             const voices = window.speechSynthesis.getVoices();
+             if (voices.length > 0) {
+                 setAvailableVoices(voices);
+             }
+        };
+
+        loadVoices();
+        
+        // Chrome loads voices asynchronously
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
         return () => {
             window.speechSynthesis.cancel();
+            window.speechSynthesis.onvoiceschanged = null;
         };
     }, []);
 
-    // Effect to handle processing after listening stops
+    // Effect to handle processing ONLY after listening stops
     useEffect(() => {
         if (!isListening && transcript && !isSpeaking && !isProcessing) {
-            processSpeech(transcript);
+             // Basic debounce to ensure we have the final transcript
+             const timer = setTimeout(() => {
+                 console.log("[VoiceDebug] Triggering processing for:", transcript);
+                 processSpeech(transcript);
+             }, 200);
+             return () => clearTimeout(timer);
         }
-    }, [isListening, transcript]);
+    }, [isListening]); // Only trigger when isListening toggles off
 
-    const growthScriptEn = `Based on your current trajectory, I suggest exploring high-yield sip investments. Start small, perhaps 5% of your monthly income. Also, upskilling in AI tools could boost your primary income career significantly in the next 2 years.`;
-    
-    const growthScriptGu = `Tamari haal ni situation jota, hu tamane high-yield SIP ma nivesh karvani salah aapis. Tamari monthly income na 5% thi sharuat karo. Saathe j, AI tools ma aagal vadho, je tamara career mate faydakarak raheshe.`;
+    // ... (keep usage processing effect)
 
-    const getPageContextScript = () => {
-        const timeOfDay = new Date().getHours() < 12 ? 'Good morning' : 'Good evening';
-        const userName = user?.name ? user.name.split(' ')[0] : 'User';
-        
-        switch(location.pathname) {
-            case '/dashboard':
-                return `${timeOfDay}, ${userName}. Welcome to your dashboard. Your current financial health looks stable. Based on your recent activity, I project a 12% growth in your assets by next year if you maintain your current savings rate. I suggest reviewing your investment portfolio to optimize for better returns.`;
-            case '/profile-setup':
-                return `I see you are setting up your profile, ${userName}. Detailed input here is crucial. Providing accurate education and career history allows me to build a more precise parallel life simulation for you. Don't forget to list all your skills.`;
-            case '/scenarios':
-                return `This is the Scenario Builder. Here you can explore different "What If" life paths. Try creating a scenario where you switch careers or move to a new city to see how it impacts your long-term wealth.`;
-            case '/simulation':
-                return `I am currently processing your life simulation. This involves analyzing thousands of data points to predict your possible futures. Please wait a moment while I crunch the numbers.`;
-            case '/results':
-                return `Your simulation results are ready. It looks like the parallel path you chose outperforms your current trajectory by 15%. However, it comes with slightly higher risk. I recommend analyzing the year-by-year breakdown below.`;
-            case '/settings':
-                return `Here you can configure your application preferences and account settings.`;
-            default:
-                return `${timeOfDay}, ${userName}. I am your AI assistant. I am here to help you navigate your parallel life simulation. Click on "New Simulation" to get started, or check your Dashboard for updates.`;
-        }
-    };
+    // ... (keep scripts)
 
-    const processSpeech = (text) => {
-        setIsProcessing(true);
-        const lowerText = text.toLowerCase();
-        
-        // Simulating "Thinking" delay
-        setTimeout(() => {
-            let reply = "";
-            let lang = selectedLang;
-
-            // NLP / Intent Recognition Logic
-            if (selectedLang.startsWith('gu')) {
-                // Gujarati Logic
-                if (lowerText.includes('bhavishya') || lowerText.includes('vikaas') || lowerText.includes('growth')) {
-                    reply = growthScriptGu;
-                } else if (lowerText.includes('samjav') || lowerText.includes('explain')) {
-                    // Context aware explanation fallback
-                     reply = "Aa page tamara financial data vishe che. Tame growth mate puchi shako cho.";
-                } else {
-                    reply = `Maaf karjo, hu tamari vaat samji na sakyo. Tame 'bhavishya' vishe puchi shako cho.`;
-                }
-            } else {
-                // English Logic
-                if (lowerText.includes('growth') || lowerText.includes('future') || lowerText.includes('suggest')) {
-                    reply = growthScriptEn;
-                } else if (lowerText.includes('explain') || lowerText.includes('what is this') || lowerText.includes('help')) {
-                    // Read page context
-                    reply = getPageContextScript();
-                } else if (lowerText.includes('dashboard')) {
-                    // Navigation command
-                    reply = "Navigating to Dashboard...";
-                    // In a real app we'd trigger navigation here, but need to pass navigate prop or hook
-                    window.location.href = '/dashboard'; // Simple fallback or use navigate hook if available
-                } else {
-                    reply = `I heard: "${text}". Try asking "Explain this" or "Suggestion for growth".`;
-                }
-            }
-
-            speakResponse(reply, lang);
-            setIsProcessing(false);
-            resetTranscript(); // Clear transcript after processing
-        }, 1500); 
-    };
+    // ... (keep processSpeech)
 
     const speakResponse = (text, lang) => {
-        if (isSpeaking) {
-            window.speechSynthesis.cancel();
-            setIsSpeaking(false);
-        }
+        console.log(`[VoiceDebug] speaking response: ${text}`);
+        
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
 
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // Attempt to select a good voice
-        const voices = window.speechSynthesis.getVoices();
+        // Robust Voice Selection
+        let voices = availableVoices;
+        if (voices.length === 0) {
+            voices = window.speechSynthesis.getVoices(); // Try getting again just in case
+        }
+
         let preferredVoice = null;
 
         if (lang.startsWith('gu')) {
-            // Try to find a Gujarati voice, fallback to Hindi or first available (system usually handles fallback)
-            preferredVoice = voices.find(v => v.lang.includes('gu')) || voices.find(v => v.lang.includes('hi'));
+             // Gujarati Fallback Chain: Gujarati -> Hindi -> Indian English -> Default
+            preferredVoice = voices.find(v => v.lang.includes('gu')) || 
+                             voices.find(v => v.lang.includes('hi')) ||
+                             voices.find(v => v.lang === 'en-IN');
+        } else if (lang.startsWith('hi')) {
+            // Hindi Fallback Chain: Hindi -> Indian English -> Default
+            preferredVoice = voices.find(v => v.lang.includes('hi')) || 
+                             voices.find(v => v.lang === 'en-IN');
         } else {
-            // Prefer Google US English or Indian English
-            preferredVoice = voices.find(v => v.name.includes('Google US English')) || voices.find(v => v.lang === 'en-IN') || voices[0];
+            // English Fallback Chain: Google US -> Indian English -> US English -> Default
+            preferredVoice = voices.find(v => v.name.includes('Google US English')) || 
+                             voices.find(v => v.lang === 'en-IN') || 
+                             voices.find(v => v.lang.includes('en-US'));
         }
 
-        if (preferredVoice) utterance.voice = preferredVoice;
+        // Final fallback to ANY voice if specific one fails
+        if (!preferredVoice && voices.length > 0) {
+             preferredVoice = voices[0];
+             console.warn("[VoiceDebug] No specific language voice found, using default:", preferredVoice.name);
+        }
+
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
+            console.log(`[VoiceDebug] Selected Voice: ${preferredVoice.name} (${preferredVoice.lang})`);
+        } else {
+             console.warn("[VoiceDebug] No voices available at all. Utilizing system default.");
+        }
+
         utterance.lang = lang; 
         utterance.rate = 1;
         utterance.pitch = 1;
 
         utterance.onstart = () => {
+            console.log("[VoiceDebug] TTS Started");
             setIsSpeaking(true);
             setResponseText(text);
         };
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        utterance.onend = () => {
+             console.log("[VoiceDebug] TTS Ended");
+             setIsSpeaking(false);
+        };
+        utterance.onerror = (e) => {
+            console.error("[VoiceDebug] TTS Error", e);
+            setIsSpeaking(false);
+        };
 
         window.speechSynthesis.speak(utterance);
     };
@@ -149,15 +138,35 @@ const VoiceAssistant = () => {
 
     const toggleLanguage = (e) => {
         e.stopPropagation();
-        setSelectedLang(prev => prev === 'en-IN' ? 'gu-IN' : 'en-IN');
+        setSelectedLang(prev => {
+            if (prev === 'en-IN') return 'hi-IN';
+            if (prev === 'hi-IN') return 'gu-IN';
+            return 'en-IN';
+        });
     };
 
     if (!hasRecognition) {
-        return null; // Or render a fallback UI
+         return (
+            <div className="fixed bottom-6 right-6 z-50">
+                <div className="bg-red-500/90 text-white text-xs p-2 rounded-lg mb-2 shadow-lg max-w-[150px]">
+                    Voice Not Supported in this Browser
+                </div>
+                 <button className="p-4 rounded-full bg-gray-600 text-white cursor-not-allowed opacity-50">
+                    <Mic size={24} />
+                </button>
+            </div>
+         );
     }
 
+    const getLangLabel = (lang) => {
+        if (lang === 'en-IN') return 'EN';
+        if (lang === 'hi-IN') return 'HI';
+        if (lang === 'gu-IN') return 'GU';
+        return 'EN';
+    };
+
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        <div className="fixed top-24 right-6 z-50 flex flex-col items-end gap-2">
             <AnimatePresence>
                 {(isSpeaking || isListening || isProcessing) && (
                     <motion.div 
@@ -189,12 +198,21 @@ const VoiceAssistant = () => {
                                   {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'AI Insight'}
                                   {/* Lang Badge */}
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-400 border border-slate-600">
-                                    {selectedLang === 'en-IN' ? 'EN' : 'GU'}
+                                    {getLangLabel(selectedLang)}
                                   </span>
                                 </h4>
                                 <p className="text-gray-300 leading-relaxed">
                                     {isListening ? (transcript || "Speak now...") : isProcessing ? "Thinking..." : responseText}
                                 </p>
+                                {/* Retry / Replay Button if there is text but no speech */}
+                                {!isSpeaking && responseText && !isListening && !isProcessing && (
+                                     <button 
+                                        onClick={() => speakResponse(responseText, selectedLang)}
+                                        className="mt-2 text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded flex items-center gap-1 transition"
+                                     >
+                                        <Sparkles size={12} /> Replay
+                                     </button>
+                                )}
                             </div>
                         </div>
                     </motion.div>
@@ -208,7 +226,7 @@ const VoiceAssistant = () => {
                     className="p-2 rounded-full bg-slate-800 border border-slate-600 text-xs font-bold text-slate-300 hover:bg-slate-700 transition"
                     title="Switch Language"
                  >
-                    {selectedLang === 'en-IN' ? 'EN' : 'GU'}
+                    {getLangLabel(selectedLang)}
                  </button>
 
                 <button

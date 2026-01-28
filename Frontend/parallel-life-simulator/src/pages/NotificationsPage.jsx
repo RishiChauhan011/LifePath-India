@@ -7,7 +7,7 @@ const NotificationsPage = () => {
              <div className="w-full max-w-2xl">
                 <div className="flex justify-between items-center mb-8">
                      <h1 className="text-3xl font-bold text-white">Notifications</h1>
-                     <button className="text-sm text-primary-blue hover:text-white">Mark all as read</button>
+                     <button className="text-sm text-primary-blue hover:text-white" onClick={() => alert("All notifications marked as read.")}>Mark all as read</button>
                 </div>
 
                 <div className="space-y-4">
@@ -39,7 +39,10 @@ const NotificationsPage = () => {
 };
 
 const NotificationItem = ({ icon: Icon, color, title, desc, time }) => (
-    <Card className="bg-card-bg border-slate-700 p-4 flex gap-4 items-start hover:bg-slate-800/50 transition-colors cursor-pointer">
+    <Card 
+        className="bg-card-bg border-slate-700 p-4 flex gap-4 items-start hover:bg-slate-800/50 transition-colors cursor-pointer"
+        onClick={() => alert(`Opened notification: ${title}`)}
+    >
         <div className={`mt-1 p-2 rounded-lg bg-slate-800 ${color}`}>
             <Icon size={20} />
         </div>

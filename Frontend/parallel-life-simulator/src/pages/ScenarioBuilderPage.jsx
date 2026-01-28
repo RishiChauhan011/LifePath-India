@@ -90,11 +90,25 @@ const ScenarioBuilderPage = () => {
             </div>
             
             <div className="space-y-2">
-                <div className="p-3 bg-primary-blue/10 border border-primary-blue rounded-lg text-white text-sm font-medium flex items-center gap-3 cursor-pointer">
+                <div 
+                    onClick={() => {
+                        setSavings(60000);
+                        setRisk('Aggressive');
+                        setRetireAge(50);
+                    }}
+                    className="p-3 bg-primary-blue/10 border border-primary-blue rounded-lg text-white text-sm font-medium flex items-center gap-3 cursor-pointer hover:bg-primary-blue/20 transition-colors"
+                >
                     <div className="w-2 h-2 bg-primary-blue rounded-full" />
                     Aggressive Early
                 </div>
-                <div className="p-3 hover:bg-slate-800 border border-transparent rounded-lg text-text-secondary text-sm font-medium flex items-center gap-3 cursor-pointer">
+                <div 
+                    onClick={() => {
+                        setSavings(30000);
+                        setRisk('Conservative');
+                        setRetireAge(65);
+                    }}
+                    className="p-3 hover:bg-slate-800 border border-transparent rounded-lg text-text-secondary text-sm font-medium flex items-center gap-3 cursor-pointer transition-colors"
+                >
                     <div className="w-2 h-2 bg-slate-600 rounded-full" />
                     Conservative Baseline
                 </div>
@@ -119,17 +133,10 @@ const ScenarioBuilderPage = () => {
                 <span className="text-white font-medium">Retirement Plan 2024</span>
             </div>
             <div className="flex items-center gap-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-2.5 text-slate-500" size={16} />
-                    <input className="bg-slate-800 border border-transparent focus:border-slate-600 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 w-64 outline-none" placeholder="Search parameters..." />
-                </div>
-                <Button className="bg-primary-blue hover:bg-blue-600 text-white px-4 py-2 text-sm rounded-lg shadow-glow">
-                    Save Scenario
-                </Button>
-                <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 hover:text-white cursor-pointer transition-colors">
-                    <Bell size={20} />
-                </div>
-                <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 hover:text-white cursor-pointer transition-colors">
+                <div 
+                    className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 hover:text-white cursor-pointer transition-colors"
+                    onClick={() => navigate('/profile')}
+                >
                     <User size={20} />
                 </div>
             </div>
